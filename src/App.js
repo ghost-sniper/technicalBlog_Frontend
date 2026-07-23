@@ -1,9 +1,36 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Layout } from "antd";
 import { Flex } from "antd";
 import { Card } from "antd";
+import { message } from "antd";
+import { Tag } from "antd";
 const { Header, Sider, Content, Footer } = Layout;
 function App() {
+  const [tags, setTags] = React.useState(['docker','Java','k8s']);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+
+  const fetchTags = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("http://localhost:8080/tags");
+      const data = await response.json().tags || [];
+      setTags(data);
+
+    } catch (error) {
+      setError(error.message || '获取标签数据失败');
+      message.error('获取标签数据失败,请检查网络设置');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchTags();
+  }, []);
   const layoutstyle = {
     borderRadius: 8,
     overflow: "hidden",
@@ -107,6 +134,14 @@ function App() {
               <p>
                 If you don't fight for your love.What kind of love do you have?
               </p>
+            </Card>
+            <Card title="标签">
+              {tags.map((tag, index) => {
+                return (
+                  <Tag key={tag}>{tag}</Tag>
+                );
+              })}
+
             </Card>
           </Flex>
         </Sider>
