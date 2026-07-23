@@ -4,21 +4,24 @@ import { Flex } from "antd";
 import { Card } from "antd";
 import { message } from "antd";
 import { Tag } from "antd";
+import { useState } from "@rc-component/util";
 const { Header, Sider, Content, Footer } = Layout;
 function App() {
   const [tags, setTags] = React.useState(['docker','Java','k8s']);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
 
+  const [categories, setCategories] = React.useState([]);
   const fetchTags = async () => {
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch("http://localhost:8080/tags");
-      const data = await response.json().tags || [];
-      setTags(data);
-
+      const data = await response.json();
+      const tagData = data.tags.map(tag => tag.tag_name);
+      // console.log(tagData);
+      setTags(tagData);
     } catch (error) {
       setError(error.message || '获取标签数据失败');
       message.error('获取标签数据失败,请检查网络设置');
@@ -26,10 +29,24 @@ function App() {
       setLoading(false);
     }
   };
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/categories");
+      const data = await response.json();
+      const categoryData = data.categories.map(category => category.name);
+      setCategories(categoryData);
+    } catch (error) {
+      setError(error.message || '获取分类数据失败');
+      message.error('获取分类数据失败，请检查网络设置');
+    } finally {
+      setLoading(false);
+    }
+  }
 
 
   useEffect(() => {
     fetchTags();
+    fetchCategories();
   }, []);
   const layoutstyle = {
     borderRadius: 8,
@@ -129,7 +146,7 @@ function App() {
       <Layout>
         <Content style={contentstyle}>Content</Content>
         <Sider width="25%" style={siderstyle}>
-          <Flex gap="middle" vertical="true">
+          <Flex gap="middle" vertical>
             <Card title="公告">
               <p>
                 If you don't fight for your love.What kind of love do you have?
@@ -142,6 +159,13 @@ function App() {
                 );
               })}
 
+            </Card>
+            <Card title="分类">
+              {categories.map((category, index)=>{
+                return (
+                  <Tag key={category}>{category}</Tag>
+                );
+              })}
             </Card>
           </Flex>
         </Sider>
