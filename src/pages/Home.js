@@ -19,7 +19,7 @@ function Home() {
         setError(null);
 
         try {
-            const response = await fetch("http://localhost:8080/tags");
+            const response = await fetch("http://localhost:8600/tags");
             const data = await response.json();
             const tagData = data.tags.map(tag => tag.tag_name);
             // console.log(tagData);
@@ -33,7 +33,7 @@ function Home() {
     };
     const fetchCategories = async () => {
         try {
-            const response = await fetch("http://localhost:8080/categories");
+            const response = await fetch("http://localhost:8600/categories");
             const data = await response.json();
             const categoryData = data.categories.map(category => category.name);
             setCategories(categoryData);

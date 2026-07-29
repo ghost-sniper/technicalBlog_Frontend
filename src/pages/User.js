@@ -5,10 +5,17 @@ import { Form } from 'antd';
 import { Input } from 'antd';
 import { Button } from 'antd';
 import { Checkbox } from 'antd';
+import { message } from 'antd';
 import React from 'react';
+import { useEffect } from 'react';
+import E2EE from '@chatereum/react-e2ee';
 const { Sider, Content } = Layout;
 function User() {
     const [isLogin, setIsLogin] = React.useState(true);
+    const [username, setUsername] = React.useState('');
+    const [password, setPassword] = React.useState('');
+    const [publicKey, setPublicKey] = React.useState(null);
+    const [encryptedPassword, setEncryptedPassword] = React.useState('');
     const onFinish = values => {
         console.log('Success:', values);
     };
@@ -17,16 +24,53 @@ function User() {
     };
 
 
-    const handleLogin = (values) => {
+    const handleLogin = async (value) => {
         // Handle login logic here
-        console.log('Login values:', values);
-    }
+        try {
+            // console.log('密码:', password);
+            // console.log('公钥:', publicKey);
+            // console.log('typeof publicKey:', typeof publicKey);
+            // console.log('startwith:', publicKey?.includes('-----BEGIN PUBLIC KEY-----'));
+            setEncryptedPassword(await E2EE.encryptPlaintext({ public_key: publicKey, plain_text: password }));
+            console.log('Encrypted Password:', encryptedPassword);
+        } catch (error) {
+            message.error('加密密码失败，请检查公钥是否正确');
+        }
+        try {
+            console.log('密码:', password);
+            console.log('用户名: ', username);
+            const response = await fetch("http://localhost:8600/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ public_key: publicKey, username: username, password: encryptedPassword.cipher_text, iv: encryptedPassword.iv, aes_key: encryptedPassword.aes_key })
+            });
+        } catch (error) {
+            message.error('登录失败，请检查用户名和密码');
+        }
+    };
 
-    const handleRegister = (values) => {
+    const handleRegister = async (value) => {
         // Handle register logic here
-        console.log('Register values:', values);
+        // console.log('Register values:', value);
+        // const encryptedPassword = E2EE.encryptPlaintext({ public_key: publicKey, plain_text: password });
+        // console.log('Encrypted Password:', encryptedPassword);
     }
 
+    const fetchPublicKey = async () => {
+        try {
+            const response = await fetch("http://localhost:8600/publicKey");
+            const data = await response.text();
+            console.log('Public Key:', data);
+            setPublicKey(data);
+        } catch (error) {
+            message.error('获取公钥失败，请检查网络设置');
+        }
+    };
+
+
+    useEffect(() => {
+        fetchPublicKey();
+    });
     return (
         <Layout style={{ backgroundImage: `url(${bg})`, height: '100vh', width: '100wh', cover: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
             <Sider width="65%" style={{ background: 'transparent' }}></Sider>
@@ -40,10 +84,10 @@ function User() {
                         onFinishFailed={onFinishFailed}
                         autoComplete="off">
                         <Form.Item label="用户名" name="username" rules={[{ required: true, message: '请输入邮箱或手机号' }]}>
-                            <Input placeholder="请输入邮箱或手机号" />
+                            <Input value={username} placeholder="请输入邮箱或手机号" onChange={(e) => setUsername(e.target.value)} />
                         </Form.Item>
                         <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }]}>
-                            <Input.Password placeholder="请输入密码" />
+                            <Input.Password value={password} placeholder="请输入密码" onChange={(e) => setPassword(e.target.value)} />
                         </Form.Item>
                         {isLogin ? <Form.Item name="remember" valuePropName="checked" label={null}>
                             <Checkbox>Remember me</Checkbox>
