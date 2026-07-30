@@ -20,6 +20,10 @@ let router = createBrowserRouter([
       {
         path: "home",
         Component: Home
+      },
+      {
+        path: "article",
+        Component: React.lazy(() => import('./pages/Article'))
       }
     ]
   }

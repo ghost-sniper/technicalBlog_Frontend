@@ -25,14 +25,11 @@ function User() {
 
 
     const handleLogin = async (value) => {
-        // Handle login logic here
         try {
-            // console.log('密码:', password);
-            // console.log('公钥:', publicKey);
-            // console.log('typeof publicKey:', typeof publicKey);
-            // console.log('startwith:', publicKey?.includes('-----BEGIN PUBLIC KEY-----'));
             setEncryptedPassword(await E2EE.encryptPlaintext({ public_key: publicKey, plain_text: password }));
-            console.log('Encrypted Password:', encryptedPassword);
+            console.log('Encrypted Password:', encryptedPassword.cipher_text);
+            console.log('Encrypted Password:', encryptedPassword.iv);
+            console.log('Encrypted Password:', encryptedPassword.aes_key);
         } catch (error) {
             message.error('加密密码失败，请检查公钥是否正确');
         }
@@ -50,10 +47,7 @@ function User() {
     };
 
     const handleRegister = async (value) => {
-        // Handle register logic here
-        // console.log('Register values:', value);
-        // const encryptedPassword = E2EE.encryptPlaintext({ public_key: publicKey, plain_text: password });
-        // console.log('Encrypted Password:', encryptedPassword);
+        
     }
 
     const fetchPublicKey = async () => {
