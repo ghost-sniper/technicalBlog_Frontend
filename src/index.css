@@ -1,18 +1,36 @@
 body {
     margin: 0;
+
     font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif;
+        FontAwesome;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-image: url('./assets/backgrounds/blue.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
+    /* 可选：固定背景，不随滚动条滚动 */
+    /* 增加一个背景色作为图片加载失败或透明区域的降级方案 */
+    background-color: #f0f2f5;
 }
 
 code {
     font-family:
         source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
+
 #root {
     width: 100vw;
     height: 100vh;
+}
+
+@font-face {
+    font-family: 'FontAwesome';
+    src: url('./assets/fonts/fontawesome-webfont.woff') format('woff'),
+        url('./assets/fonts/fontawesome-webfont.woff2') format('woff2'),
+        url('./assets/fonts/fontawesome-webfont.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
 }

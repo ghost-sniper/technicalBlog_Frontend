@@ -5,7 +5,9 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import User from './pages/User';
 import Home from './pages/Home';
+import Article from './pages/Article';
 import { createBrowserRouter, RouterProvider, redirect, Navigate } from 'react-router-dom';
+import { ConfigProvider } from 'antd';
 
 let router = createBrowserRouter([
   {
@@ -23,7 +25,7 @@ let router = createBrowserRouter([
       },
       {
         path: "article",
-        Component: React.lazy(() => import('./pages/Article'))
+        Component: Article
       }
     ]
   }
@@ -31,7 +33,9 @@ let router = createBrowserRouter([
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <RouterProvider router={router} />
+  <ConfigProvider theme={{ token: { fontFamily: 'FontAwesome' } }}>
+    <RouterProvider router={router} />
+  </ConfigProvider>
 );
 
 // If you want to start measuring performance in your app, pass a function

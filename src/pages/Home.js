@@ -5,7 +5,7 @@ import { Card } from "antd";
 import { message } from "antd";
 import { Tag } from "antd";
 import { useState } from "@rc-component/util";
-
+import request_client from "../utils/common";
 const { Header, Sider, Content, Footer } = Layout;
 
 function Home() {
@@ -19,10 +19,9 @@ function Home() {
         setError(null);
 
         try {
-            const response = await fetch("http://localhost:8600/tags");
-            const data = await response.json();
+            const response = await request_client.get("tags");
+            const data = await response.data;
             const tagData = data.tags.map(tag => tag.tag_name);
-            // console.log(tagData);
             setTags(tagData);
         } catch (error) {
             setError(error.message || '获取标签数据失败');
@@ -33,8 +32,8 @@ function Home() {
     };
     const fetchCategories = async () => {
         try {
-            const response = await fetch("http://localhost:8600/categories");
-            const data = await response.json();
+            const response = await request_client.get("categories");
+            const data = await response.data;
             const categoryData = data.categories.map(category => category.name);
             setCategories(categoryData);
         } catch (error) {
@@ -44,7 +43,9 @@ function Home() {
             setLoading(false);
         }
     }
-
+    const about = () => {
+        message.info('John Reeves is a software engineer and blogger. He loves to share his knowledge and experience in programming, DevOps, and cloud computing. You can contact him via email or follow him on social media.');
+    }
 
     useEffect(() => {
         fetchTags();
@@ -57,33 +58,33 @@ function Home() {
         maxWidth: "100%",
         height: "100%",
         maxHeight: "100%",
-        backgroundColor: "MintCream",
+        background: 'transparent',
+        minHeight: '100vh',
     };
     const headerstyle = {
         textAlig: "center",
         height: 64,
         paddingInLine: 48,
         lineHeight: "64px",
-        backgroundColor: "MintCream",
+        background: 'transparent',
     };
     const contentstyle = {
         textAlign: "center",
         minHeight: 120,
         lineHeight: "120px",
-        color: "#fff",
-        backgroundColor: "#0958d9",
+        background: 'transparent',
     };
     const siderstyle = {
         textAlign: "center",
         lineHeight: "120px",
-        color: "#fff",
-        backgroundColor: "MintCream",
+        background: 'transparent',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
     };
     const footerstyle = {
         textAlign: "center",
-        color: "#fff",
-        backgroundColor: "#4096ff",
-        backgroundColor: 'MintCream'
+        background: 'transparent',
     };
     return (<Layout style={layoutstyle}>
         <Header style={headerstyle}>
@@ -125,6 +126,7 @@ function Home() {
                             display: "flex",
                             alignItems: "center",
                         }}
+                        onClick={about}
                     >
                         <svg
                             t="1784080924680"
@@ -145,10 +147,10 @@ function Home() {
                 </Flex>
             </Flex>
         </Header>
-        <Layout>
+        <Layout style={{ background: 'transparent' }}>
             <Content style={contentstyle}>Content</Content>
             <Sider width="25%" style={siderstyle}>
-                <Flex gap="middle" vertical align="center" >
+                <Flex gap="middle" vertical align="center" justify="center" style={{ height: '100%', width: '100%' }} >
                     <Card title="公告" style={{ width: '80%' }}>
                         <p>
                             If you don't fight for your love.What kind of love do you have?
@@ -173,7 +175,7 @@ function Home() {
             </Sider>
         </Layout>
         <Footer style={footerstyle}>
-            <p style={{color:"black"}}>To love oneself is the beginning of a lifelong romance.</p>
+            <p style={{color:"black", fontFamily:"FontAwesome", fontStyle:"italic", fontSize:"24px"}}>To love oneself is the beginning of a lifelong romance.</p>
         </Footer>
     </Layout>)
 }

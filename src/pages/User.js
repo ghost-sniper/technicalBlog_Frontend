@@ -9,13 +9,14 @@ import { message } from 'antd';
 import React from 'react';
 import { useEffect } from 'react';
 import E2EE from '@chatereum/react-e2ee';
+import request_client from '../utils/common';
 const { Sider, Content } = Layout;
 function User() {
     const [isLogin, setIsLogin] = React.useState(true);
     const [username, setUsername] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [publicKey, setPublicKey] = React.useState(null);
-    const [encryptedPassword, setEncryptedPassword] = React.useState('');
+    // const [encryptedPassword, setEncryptedPassword] = React.useState('');
     const onFinish = values => {
         console.log('Success:', values);
     };
@@ -25,35 +26,27 @@ function User() {
 
 
     const handleLogin = async (value) => {
+        let encryptedPassword;
         try {
-            setEncryptedPassword(await E2EE.encryptPlaintext({ public_key: publicKey, plain_text: password }));
-            console.log('Encrypted Password:', encryptedPassword.cipher_text);
-            console.log('Encrypted Password:', encryptedPassword.iv);
-            console.log('Encrypted Password:', encryptedPassword.aes_key);
+            encryptedPassword = await E2EE.encryptPlaintext({ public_key: publicKey, plain_text: password });
         } catch (error) {
             message.error('加密密码失败，请检查公钥是否正确');
         }
         try {
-            console.log('密码:', password);
-            console.log('用户名: ', username);
-            const response = await fetch("http://localhost:8600/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ public_key: publicKey, username: username, password: encryptedPassword.cipher_text, iv: encryptedPassword.iv, aes_key: encryptedPassword.aes_key })
-            });
+            const response = await request_client.post("login", { public_key: publicKey, username: username, password: encryptedPassword.cipher_text, iv: encryptedPassword.iv, aes_key: encryptedPassword.aes_key });
         } catch (error) {
             message.error('登录失败，请检查用户名和密码');
         }
     };
 
     const handleRegister = async (value) => {
-        
+
     }
 
     const fetchPublicKey = async () => {
         try {
-            const response = await fetch("http://localhost:8600/publicKey");
-            const data = await response.text();
+            const response = await request_client.get("publicKey");
+            const data = await response.data;
             console.log('Public Key:', data);
             setPublicKey(data);
         } catch (error) {
@@ -64,7 +57,7 @@ function User() {
 
     useEffect(() => {
         fetchPublicKey();
-    });
+    }, []);
     return (
         <Layout style={{ backgroundImage: `url(${bg})`, height: '100vh', width: '100wh', cover: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
             <Sider width="65%" style={{ background: 'transparent' }}></Sider>
