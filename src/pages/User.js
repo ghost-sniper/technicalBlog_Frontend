@@ -33,7 +33,7 @@ function User() {
             message.error('加密密码失败，请检查公钥是否正确');
         }
         try {
-            const response = await request_client.post("login", { public_key: publicKey, username: username, password: encryptedPassword.cipher_text, iv: encryptedPassword.iv, aes_key: encryptedPassword.aes_key });
+            const response = await request_client.post("api/login", { public_key: publicKey, username: username, password: encryptedPassword.cipher_text, iv: encryptedPassword.iv, aes_key: encryptedPassword.aes_key });
         } catch (error) {
             message.error('登录失败，请检查用户名和密码');
         }
@@ -45,7 +45,7 @@ function User() {
 
     const fetchPublicKey = async () => {
         try {
-            const response = await request_client.get("publicKey");
+            const response = await request_client.get("api/publicKey");
             const data = await response.data;
             console.log('Public Key:', data);
             setPublicKey(data);

@@ -24,7 +24,7 @@ let router = createBrowserRouter([
         Component: Home
       },
       {
-        path: "article",
+        path: "article/:id",
         Component: Article
       }
     ]

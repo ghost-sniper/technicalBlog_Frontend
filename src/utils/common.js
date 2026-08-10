@@ -2,11 +2,16 @@ import axios from 'axios';
 import { message } from 'antd';
 
 const request_client = axios.create({
-    baseURL: 'http://localhost:8600/',
+    baseURL: 'http://localhost:8080/',
     timeout: 6000,
     headers: {
         'Content-Type': 'application/json',
     },
+});
+
+request_client.interceptors.request.use(config => {
+  console.log('实际请求地址:', config.baseURL + config.url);
+  return config;
 });
 
 request_client.interceptors.response.use(response => response, error => {

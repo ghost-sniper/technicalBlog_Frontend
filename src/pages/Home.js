@@ -6,20 +6,21 @@ import { message } from "antd";
 import { Tag } from "antd";
 import { useState } from "@rc-component/util";
 import request_client from "../utils/common";
+import { useNavigate } from "react-router-dom";
 const { Header, Sider, Content, Footer } = Layout;
 
 function Home() {
     const [tags, setTags] = React.useState(['docker', 'Java', 'k8s']);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState(null);
-
+    const [articles, setArticles] = React.useState([]);
     const [categories, setCategories] = React.useState([]);
     const fetchTags = async () => {
         setLoading(true);
         setError(null);
 
         try {
-            const response = await request_client.get("tags");
+            const response = await request_client.get("api/tags");
             const data = await response.data;
             const tagData = data.tags.map(tag => tag.tag_name);
             setTags(tagData);
@@ -32,7 +33,7 @@ function Home() {
     };
     const fetchCategories = async () => {
         try {
-            const response = await request_client.get("categories");
+            const response = await request_client.get("api/categories");
             const data = await response.data;
             const categoryData = data.categories.map(category => category.name);
             setCategories(categoryData);
@@ -47,9 +48,24 @@ function Home() {
         message.info('John Reeves is a software engineer and blogger. He loves to share his knowledge and experience in programming, DevOps, and cloud computing. You can contact him via email or follow him on social media.');
     }
 
+    const getArticleList = async () => {
+        try {
+            const response = await request_client.get("api/list/article");
+            const data = await response.data;
+            const articlesData = data.message.article_list;
+            setArticles(articlesData);
+        } catch (error) {
+            setError(error.message || '获取文章列表失败');
+            message.error('获取文章列表失败，请检查网络设置');
+        } finally {
+            setLoading(false);
+        }
+    }
+
     useEffect(() => {
         fetchTags();
         fetchCategories();
+        getArticleList();
     }, []);
     const layoutstyle = {
         borderRadius: 8,
@@ -73,6 +89,8 @@ function Home() {
         minHeight: 120,
         lineHeight: "120px",
         background: 'transparent',
+        height: '100%',
+        overflowY: 'auto'
     };
     const siderstyle = {
         textAlign: "center",
@@ -86,6 +104,7 @@ function Home() {
         textAlign: "center",
         background: 'transparent',
     };
+    const navigate = useNavigate();
     return (<Layout style={layoutstyle}>
         <Header style={headerstyle}>
             <Flex justify="space-between" align="center" height="100%">
@@ -147,8 +166,18 @@ function Home() {
                 </Flex>
             </Flex>
         </Header>
-        <Layout style={{ background: 'transparent' }}>
-            <Content style={contentstyle}>Content</Content>
+        <Layout style={{ background: 'transparent', flex: 1, overflow: 'hidden' }}>
+            <Content style={contentstyle}>
+                <Flex vertical gap="middle" style={{ padding: 24 }}>
+                    {articles.map((article, index) => {
+                        return (
+                            <Card key={index} title={article.article_title} style={{ width: '80%' }} onClick={() => navigate(`/article/${article.id}`)}    >
+                                <p>{article.prospectus}</p>
+                            </Card>
+                        );
+                    })}
+                </Flex>
+            </Content>
             <Sider width="25%" style={siderstyle}>
                 <Flex gap="middle" vertical align="center" justify="center" style={{ height: '100%', width: '100%' }} >
                     <Card title="公告" style={{ width: '80%' }}>
@@ -175,7 +204,7 @@ function Home() {
             </Sider>
         </Layout>
         <Footer style={footerstyle}>
-            <p style={{color:"black", fontFamily:"FontAwesome", fontStyle:"italic", fontSize:"24px"}}>To love oneself is the beginning of a lifelong romance.</p>
+            <p style={{ color: "black", fontFamily: "FontAwesome", fontStyle: "italic", fontSize: "24px" }}>To love oneself is the beginning of a lifelong romance.</p>
         </Footer>
     </Layout>)
 }
