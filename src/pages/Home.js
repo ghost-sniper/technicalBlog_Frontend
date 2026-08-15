@@ -168,10 +168,10 @@ function Home() {
         </Header>
         <Layout style={{ background: 'transparent', flex: 1, overflow: 'hidden' }}>
             <Content style={contentstyle}>
-                <Flex vertical gap="middle" style={{ padding: 24 }}>
+                <Flex vertical gap="middle" align="center" justify="center" style={{ padding: 24 }}>
                     {articles.map((article, index) => {
                         return (
-                            <Card key={index} title={article.article_title} style={{ width: '80%' }} onClick={() => navigate(`/article/${article.id}`)}    >
+                            <Card key={index} title={article.article_title} style={{ width: '80%', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '2rem' }} onClick={() => navigate(`/article/${article.id}`)}    >
                                 <p>{article.prospectus}</p>
                             </Card>
                         );
@@ -180,23 +180,27 @@ function Home() {
             </Content>
             <Sider width="25%" style={siderstyle}>
                 <Flex gap="middle" vertical align="center" justify="center" style={{ height: '100%', width: '100%' }} >
-                    <Card title="公告" style={{ width: '80%' }}>
+                    <Card title="公告" style={{ width: '80%', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '2rem' }}>
                         <p>
                             If you don't fight for your love.What kind of love do you have?
                         </p>
                     </Card>
-                    <Card title="标签" style={{ width: '80%' }}>
+                    <Card title="标签" style={{ width: '80%', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '2rem' }}>
                         {tags.map((tag, index) => {
                             return (
-                                <Tag key={tag}>{tag}</Tag>
+                                <Tag key={tag} style={{ background: 'rgba(255, 255, 255, 0.15)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '0.5rem' }}>
+                                    {tag}
+                                </Tag>
                             );
                         })}
 
                     </Card>
-                    <Card title="分类" style={{ width: '80%' }}>
+                    <Card title="分类" style={{ width: '80%', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '2rem' }}>
                         {categories.map((category, index) => {
                             return (
-                                <Tag key={category}>{category}</Tag>
+                                <Tag key={category} style={{ background: 'rgba(255, 255, 255, 0.15)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '0.5rem' }}>
+                                    {category}
+                                </Tag>
                             );
                         })}
                     </Card>
