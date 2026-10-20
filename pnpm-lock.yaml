@@ -29,6 +29,11 @@ overrides:
   webpack-dev-middleware@<7.4.6: 7.4.6
   webpack-dev-server@<5.2.6: 5.2.6
 
+patchedDependencies:
+  react-scripts@5.0.1:
+    hash: d9eda52aa45bda2d2d9a6824365557c91115606745ebb52b9ac52150f73e75c8
+    path: patches/react-scripts@5.0.1.patch
+
 importers:
 
   .:
@@ -77,7 +82,7 @@ importers:
         version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react-scripts:
         specifier: 5.0.1
-        version: 5.0.1(@babel/plugin-syntax-flow@7.29.7(@babel/core@7.29.7))(@babel/plugin-transform-react-jsx@7.29.7(@babel/core@7.29.7))(@types/babel__core@7.20.5)(eslint@8.57.1)(react@19.2.8)(type-fest@0.21.3)(typescript@4.9.5)
+        version: 5.0.1(patch_hash=d9eda52aa45bda2d2d9a6824365557c91115606745ebb52b9ac52150f73e75c8)(@babel/plugin-syntax-flow@7.29.7(@babel/core@7.29.7))(@babel/plugin-transform-react-jsx@7.29.7(@babel/core@7.29.7))(@types/babel__core@7.20.5)(eslint@8.57.1)(react@19.2.8)(type-fest@0.21.3)(typescript@4.9.5)
       remark-gfm:
         specifier: ^4.0.1
         version: 4.0.1
@@ -12928,7 +12933,7 @@ snapshots:
     optionalDependencies:
       react-dom: 19.2.8(react@19.2.8)
 
-  react-scripts@5.0.1(@babel/plugin-syntax-flow@7.29.7(@babel/core@7.29.7))(@babel/plugin-transform-react-jsx@7.29.7(@babel/core@7.29.7))(@types/babel__core@7.20.5)(eslint@8.57.1)(react@19.2.8)(type-fest@0.21.3)(typescript@4.9.5):
+  react-scripts@5.0.1(patch_hash=d9eda52aa45bda2d2d9a6824365557c91115606745ebb52b9ac52150f73e75c8)(@babel/plugin-syntax-flow@7.29.7(@babel/core@7.29.7))(@babel/plugin-transform-react-jsx@7.29.7(@babel/core@7.29.7))(@types/babel__core@7.20.5)(eslint@8.57.1)(react@19.2.8)(type-fest@0.21.3)(typescript@4.9.5):
     dependencies:
       '@babel/core': 7.29.7
       '@pmmmwh/react-refresh-webpack-plugin': 0.5.17(react-refresh@0.11.0)(type-fest@0.21.3)(webpack-dev-server@5.2.6(webpack@5.109.0(postcss@8.5.23)))(webpack@5.109.0(postcss@8.5.23))

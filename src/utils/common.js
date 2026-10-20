@@ -15,6 +15,10 @@ request_client.interceptors.request.use(config => {
 });
 
 request_client.interceptors.response.use(response => response, error => {
+    // Pages with their own error dialog handle the failure once, locally.
+    if (error.config?.skipGlobalError) {
+        return Promise.reject(error);
+    }
     const { response } = error;
     if (response) {
         const status = response.status;

@@ -4,9 +4,19 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 ## Available Scripts
 
+Use Node.js 20 or newer and pnpm 10.33.0. Install dependencies with
+`pnpm install --frozen-lockfile`, then run `pnpm run start`.
+
+The development server uses webpack-dev-server 5 with a pnpm patch for
+react-scripts 5.0.1. The patch migrates middleware hooks, HTTPS configuration,
+and server shutdown to the supported API. Keep `patches/`,
+`pnpm-workspace.yaml`, and `pnpm-lock.yaml` together when installing dependencies;
+pnpm applies the patch automatically. See the
+[webpack-dev-server migration guide](https://github.com/webpack/webpack-dev-server/blob/main/migration-v5.md).
+
 In the project directory, you can run:
 
-### `npm start`
+### `pnpm run start`
 
 Runs the app in the development mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
@@ -14,12 +24,12 @@ Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 The page will reload when you make changes.\
 You may also see any lint errors in the console.
 
-### `npm test`
+### `pnpm test`
 
 Launches the test runner in the interactive watch mode.\
 See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-### `npm run build`
+### `pnpm run build`
 
 Builds the app for production to the `build` folder.\
 It correctly bundles React in production mode and optimizes the build for the best performance.
@@ -29,7 +39,7 @@ Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `npm run eject`
+### `pnpm run eject`
 
 **Note: this is a one-way operation. Once you `eject`, you can't go back!**
 

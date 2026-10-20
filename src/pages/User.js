@@ -5,7 +5,7 @@ import { Form } from 'antd';
 import { Input } from 'antd';
 import { Button } from 'antd';
 import { Checkbox } from 'antd';
-import { message } from 'antd';
+import { message, Modal } from 'antd';
 import React from 'react';
 import { useEffect } from 'react';
 import E2EE from '@chatereum/react-e2ee';
@@ -13,68 +13,76 @@ import request_client from '../utils/common';
 const { Sider, Content } = Layout;
 function User() {
     const [isLogin, setIsLogin] = React.useState(true);
-    const [username, setUsername] = React.useState('');
-    const [password, setPassword] = React.useState('');
     const [publicKey, setPublicKey] = React.useState(null);
-    // const [encryptedPassword, setEncryptedPassword] = React.useState('');
-    const onFinish = values => {
-        console.log('Success:', values);
-    };
-    const onFinishFailed = errorInfo => {
-        console.log('Failed:', errorInfo);
-    };
+    const [loggingIn, setLoggingIn] = React.useState(false);
+    const [modal, modalContextHolder] = Modal.useModal();
+    const [messageApi, messageContextHolder] = message.useMessage();
 
 
-    const handleLogin = async (value) => {
+    const handleLogin = async ({ username, password }) => {
+        if (loggingIn) return;
+        if (!publicKey) {
+            modal.error({ title: '登录失败', content: '登录公钥尚未就绪，请刷新页面后重试', okText: '确定' });
+            return;
+        }
+        setLoggingIn(true);
         let encryptedPassword;
         try {
             encryptedPassword = await E2EE.encryptPlaintext({ public_key: publicKey, plain_text: password });
         } catch (error) {
-            message.error('加密密码失败，请检查公钥是否正确');
+            setLoggingIn(false);
+            modal.error({ title: '登录失败', content: '加密密码失败，请刷新页面后重试', okText: '确定' });
+            return;
         }
         try {
-            const response = await request_client.post("api/login", { public_key: publicKey, username: username, password: encryptedPassword.cipher_text, iv: encryptedPassword.iv, aes_key: encryptedPassword.aes_key });
+            await request_client.post("api/login", { public_key: publicKey, username: username.trim(), password: encryptedPassword.cipher_text, iv: encryptedPassword.iv, aes_key: encryptedPassword.aes_key }, { skipGlobalError: true });
+            messageApi.success('登录成功');
         } catch (error) {
-            message.error('登录失败，请检查用户名和密码');
+            const data = error.response?.data;
+            const errorMessage = typeof data?.message === 'string' && data.message.trim()
+                ? data.message
+                : error.response ? '登录失败，请稍后重试' : '请求超时或网络错误，请检查网络设置';
+            modal.error({ title: '登录失败', content: errorMessage, okText: '确定' });
+        } finally {
+            setLoggingIn(false);
         }
     };
 
-    const handleRegister = async (value) => {
+    const handleRegister = async () => {
 
     }
 
-    const fetchPublicKey = async () => {
-        try {
-            const response = await request_client.get("api/publicKey");
-            const data = await response.data;
-            console.log('Public Key:', data);
-            setPublicKey(data);
-        } catch (error) {
-            message.error('获取公钥失败，请检查网络设置');
-        }
-    };
-
-
     useEffect(() => {
+        let active = true;
+        const fetchPublicKey = async () => {
+            try {
+                const response = await request_client.get("api/publicKey", { skipGlobalError: true });
+                if (active) setPublicKey(response.data);
+            } catch (error) {
+                if (active) messageApi.error('获取公钥失败，请检查网络设置');
+            }
+        };
         fetchPublicKey();
-    }, []);
+        return () => { active = false; };
+    }, [messageApi]);
     return (
         <Layout style={{ backgroundImage: `url(${bg})`, height: '100vh', width: '100wh', cover: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+            {modalContextHolder}
+            {messageContextHolder}
             <Sider width="65%" style={{ background: 'transparent' }}></Sider>
             <Content style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', padding: '20px', borderRadius: '8px', margin: '20px', alignItems: 'center', justifyContent: 'center', display: 'flex', flexDirection: 'column' }}>
-                <Card title={isLogin ? "登陆" : "注册"} style={{ width: '70%', fontFamily: 'Arial, sans-serif' }} headStyle={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>
+                <Card title={isLogin ? "登陆" : "注册"} style={{ width: '70%', fontFamily: 'Arial, sans-serif' }} styles={{ header: { textAlign: 'center', fontSize: '24px', fontWeight: 'bold' } }}>
                     <Form name="userForm" labelCol={{ span: isLogin ? 3 : 5 }}
                         wrapperCol={{ span: 20 }}
                         style={{ maxWidth: 600 }}
                         initialValues={{ remember: true }}
-                        onFinish={onFinish}
-                        onFinishFailed={onFinishFailed}
+                        onFinish={isLogin ? handleLogin : handleRegister}
                         autoComplete="off">
                         <Form.Item label="用户名" name="username" rules={[{ required: true, message: '请输入邮箱或手机号' }]}>
-                            <Input value={username} placeholder="请输入邮箱或手机号" onChange={(e) => setUsername(e.target.value)} />
+                            <Input placeholder="请输入邮箱或手机号" />
                         </Form.Item>
                         <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }]}>
-                            <Input.Password value={password} placeholder="请输入密码" onChange={(e) => setPassword(e.target.value)} />
+                            <Input.Password placeholder="请输入密码" />
                         </Form.Item>
                         {isLogin ? <Form.Item name="remember" valuePropName="checked" label={null}>
                             <Checkbox>Remember me</Checkbox>
@@ -88,7 +96,7 @@ function User() {
                         <Form.Item label={null}>
                             {isLogin ? <Row width="100%" justify="space-evenly" align="middle">
                                 <Col>
-                                    <Button type="primary" htmlType="submit" onClick={handleLogin}>
+                                    <Button type="primary" htmlType="submit" loading={loggingIn}>
                                         登陆
                                     </Button>
                                 </Col>
@@ -101,7 +109,7 @@ function User() {
                                     <p style={{ cursor: 'pointer', color: '#1890ff' }} onClick={() => setIsLogin(false)}>没有账号？注册</p>
                                 </Col>
                             </Row> : <Row width="100%" justify="space-evenly" align="middle">
-                                <Col><Button type="primary" htmlType="submit" onClick={handleRegister}>
+                                <Col><Button type="primary" htmlType="submit">
                                     注册
                                 </Button></Col><Col>
                                     <Button type="default" htmlType="reset">
