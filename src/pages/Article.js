@@ -1,41 +1,29 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { useEffect } from 'react';
-import { Col, Row, Typography } from 'antd';
 import remarkGfm from 'remark-gfm';
+import { Alert, Button, Empty, Skeleton, Tag } from 'antd';
+import { Link, useParams } from 'react-router-dom';
 import request_client from '../utils/common';
-import { message } from 'antd';
-import { useParams } from 'react-router-dom';
-
 function Article() {
-  const [article, setArticle] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
+  const [canEdit, setCanEdit] = useState(false);
+  const [article, setArticle] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
   const { id } = useParams();
   useEffect(() => {
-    if (id) {
-      fetchArticle(id);
-    }
-  }, [id]);
-
-  const fetchArticle = async (articleId) => {
-    try {
-      console.log(request_client.defaults.baseURL);
-      const response = await request_client.get(`api/article/${articleId}`);
-      setArticle(response.data.message.article_content);
-    } catch (error) {
-      message.error('获取文章数据失败,请检查网络设置');
-    } finally {
-      setLoading(false);
-    }
-  }
-  return (
-    <Row justify="center">
-      <Col xs={24} sm={20} md={16} lg={12}>
-        <Typography>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{article}</ReactMarkdown>
-        </Typography>
-      </Col>
-    </Row>
-  );
+    let active = true;
+    setCanEdit(false);
+    request_client.get(`api/article/${id}/edit`, { skipGlobalError: true }).then(() => { if (active) setCanEdit(true); }).catch(() => {});
+    setLoading(true); setError(false); setArticle(null);
+    request_client.get(`api/article/${id}`, { skipGlobalError: true })
+      .then(response => { if (active) setArticle(response.data?.message || null); })
+      .catch(() => { if (active) setError(true); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [id, retry]);
+  return <div className="reading-page"><Link className="back-link" to="/home">← 返回文章列表</Link><article className="surface reading-card">
+    {loading ? <Skeleton active paragraph={{ rows: 10 }} /> : error ? <Alert type="error" showIcon title="文章加载失败" action={<Button onClick={() => setRetry(value => value + 1)}>重试</Button>} /> : article ? <><header className="reading-header">{canEdit && <Link className="read-link" to={`/article/${id}/edit`}>编辑文章 ↗</Link>}<p className="eyebrow">THE JOURNAL / 技术笔记</p><h1>{article.article_title}</h1><div className="tag-cloud">{(article.tags || []).map(tag => <Tag key={tag.id}>{tag.tag_name}</Tag>)}</div>{article.update_time && <p className="muted">更新于 {String(article.update_time).slice(0, 10)}</p>}</header><div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{article.article_content || ''}</ReactMarkdown></div></> : <Empty description="文章不存在或暂不可访问" />}
+  </article></div>;
 }
 export default Article;

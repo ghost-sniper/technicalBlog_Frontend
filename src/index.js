@@ -6,14 +6,16 @@ import reportWebVitals from './reportWebVitals';
 import User from './pages/User';
 import Home from './pages/Home';
 import Article from './pages/Article';
-import { createBrowserRouter, RouterProvider, redirect, Navigate } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
+import ArticleEditor from './pages/ArticleEditor';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { ThemeProvider } from './theme/ThemeProvider';
 
 let router = createBrowserRouter([
   {
     path: "/",
     Component: App,
     children: [
+      { path: "article/:id/edit", Component: ArticleEditor },
       { index: true, element: <Navigate to="/home" replace /> },
       {
         path: "user",
@@ -33,9 +35,9 @@ let router = createBrowserRouter([
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <ConfigProvider theme={{ token: { fontFamily: 'FontAwesome' } }}>
+  <ThemeProvider>
     <RouterProvider router={router} />
-  </ConfigProvider>
+  </ThemeProvider>
 );
 
 // If you want to start measuring performance in your app, pass a function

@@ -1,215 +1,38 @@
-import React, { useEffect } from "react";
-import { Layout } from "antd";
-import { Flex } from "antd";
-import { Card } from "antd";
-import { message } from "antd";
-import { Tag } from "antd";
-import { useState } from "@rc-component/util";
-import request_client from "../utils/common";
-import { useNavigate } from "react-router-dom";
-const { Header, Sider, Content, Footer } = Layout;
+import React, { useEffect, useState } from 'react';
+import { Alert, Button, Empty, Input, Skeleton, Tag } from 'antd';
+import { Link } from 'react-router-dom';
+import request_client from '../utils/common';
 
 function Home() {
-    const [tags, setTags] = React.useState(['docker', 'Java', 'k8s']);
-    const [loading, setLoading] = React.useState(true);
-    const [error, setError] = React.useState(null);
-    const [articles, setArticles] = React.useState([]);
-    const [categories, setCategories] = React.useState([]);
-    const fetchTags = async () => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            const response = await request_client.get("api/tags");
-            const data = await response.data;
-            const tagData = data.tags.map(tag => tag.tag_name);
-            setTags(tagData);
-        } catch (error) {
-            setError(error.message || '获取标签数据失败');
-            message.error('获取标签数据失败,请检查网络设置');
-        } finally {
-            setLoading(false);
-        }
-    };
-    const fetchCategories = async () => {
-        try {
-            const response = await request_client.get("api/categories");
-            const data = await response.data;
-            const categoryData = data.categories.map(category => category.name);
-            setCategories(categoryData);
-        } catch (error) {
-            setError(error.message || '获取分类数据失败');
-            message.error('获取分类数据失败，请检查网络设置');
-        } finally {
-            setLoading(false);
-        }
-    }
-    const about = () => {
-        message.info('John Reeves is a software engineer and blogger. He loves to share his knowledge and experience in programming, DevOps, and cloud computing. You can contact him via email or follow him on social media.');
-    }
-
-    const getArticleList = async () => {
-        try {
-            const response = await request_client.get("api/list/article");
-            const data = await response.data;
-            const articlesData = data.message.article_list;
-            setArticles(articlesData);
-        } catch (error) {
-            setError(error.message || '获取文章列表失败');
-            message.error('获取文章列表失败，请检查网络设置');
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    useEffect(() => {
-        fetchTags();
-        fetchCategories();
-        getArticleList();
-    }, []);
-    const layoutstyle = {
-        borderRadius: 8,
-        overflow: "hidden",
-        width: "100%",
-        maxWidth: "100%",
-        height: "100%",
-        maxHeight: "100%",
-        background: 'transparent',
-        minHeight: '100vh',
-    };
-    const headerstyle = {
-        textAlig: "center",
-        height: 64,
-        paddingInLine: 48,
-        lineHeight: "64px",
-        background: 'transparent',
-    };
-    const contentstyle = {
-        textAlign: "center",
-        minHeight: 120,
-        lineHeight: "120px",
-        background: 'transparent',
-        height: '100%',
-        overflowY: 'auto'
-    };
-    const siderstyle = {
-        textAlign: "center",
-        lineHeight: "120px",
-        background: 'transparent',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
-    };
-    const footerstyle = {
-        textAlign: "center",
-        background: 'transparent',
-    };
-    const navigate = useNavigate();
-    return (<Layout style={layoutstyle}>
-        <Header style={headerstyle}>
-            <Flex justify="space-between" align="center" height="100%">
-                <span href="/">John Reeves's Blog</span>
-                <Flex
-                    className="menuGroup"
-                    justify="space-between"
-                    align="center"
-                    height="100%"
-                    vertical="false"
-                    gap="middle"
-                >
-                    <div
-                        className="menu"
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                        }}
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="currentColor"
-                            viewBox="0 0 16 16"
-                            width="24"
-                            height="24"
-                        >
-                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
-                        </svg>
-                        <span>搜索</span>
-                    </div>
-                    <div
-                        className="menu"
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                        }}
-                        onClick={about}
-                    >
-                        <svg
-                            t="1784080924680"
-                            viewBox="0 0 1024 1024"
-                            version="1.1"
-                            xmlns="http://www.w3.org/2000/svg"
-                            p-id="14850"
-                            width="24"
-                            height="24"
-                        >
-                            <path
-                                d="M512 97.52381c228.912762 0 414.47619 185.563429 414.47619 414.47619s-185.563429 414.47619-414.47619 414.47619S97.52381 740.912762 97.52381 512 283.087238 97.52381 512 97.52381z m0 73.142857C323.486476 170.666667 170.666667 323.486476 170.666667 512s152.81981 341.333333 341.333333 341.333333 341.333333-152.81981 341.333333-341.333333S700.513524 170.666667 512 170.666667z m185.002667 377.734095l68.851809 24.722286c-92.647619 257.80419-440.100571 257.80419-508.659809-3.072l70.753523-18.578286c49.688381 189.147429 300.007619 189.147429 369.054477-3.072zM414.47619 341.333333a48.761905 48.761905 0 0 1 48.761905 48.761905v73.142857a48.761905 48.761905 0 1 1-97.523809 0v-73.142857a48.761905 48.761905 0 0 1 48.761904-48.761905z m195.04762 0a48.761905 48.761905 0 0 1 48.761904 48.761905v73.142857a48.761905 48.761905 0 1 1-97.523809 0v-73.142857a48.761905 48.761905 0 0 1 48.761905-48.761905z"
-                                p-id="14851"
-                            ></path>
-                        </svg>
-                        <span>关于</span>
-                    </div>
-                </Flex>
-            </Flex>
-        </Header>
-        <Layout style={{ background: 'transparent', flex: 1, overflow: 'hidden' }}>
-            <Content style={contentstyle}>
-                <Flex vertical gap="middle" align="center" justify="center" style={{ padding: 24 }}>
-                    {articles.map((article, index) => {
-                        return (
-                            <Card key={index} title={article.article_title} style={{ width: '80%', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '2rem' }} onClick={() => navigate(`/article/${article.id}`)}    >
-                                <p>{article.prospectus}</p>
-                            </Card>
-                        );
-                    })}
-                </Flex>
-            </Content>
-            <Sider width="25%" style={siderstyle}>
-                <Flex gap="middle" vertical align="center" justify="center" style={{ height: '100%', width: '100%' }} >
-                    <Card title="公告" style={{ width: '80%', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '2rem' }}>
-                        <p>
-                            If you don't fight for your love.What kind of love do you have?
-                        </p>
-                    </Card>
-                    <Card title="标签" style={{ width: '80%', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '2rem' }}>
-                        {tags.map((tag, index) => {
-                            return (
-                                <Tag key={tag} style={{ background: 'rgba(255, 255, 255, 0.15)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '0.5rem' }}>
-                                    {tag}
-                                </Tag>
-                            );
-                        })}
-
-                    </Card>
-                    <Card title="分类" style={{ width: '80%', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '2rem' }}>
-                        {categories.map((category, index) => {
-                            return (
-                                <Tag key={category} style={{ background: 'rgba(255, 255, 255, 0.15)', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.1)', padding: '0.5rem' }}>
-                                    {category}
-                                </Tag>
-                            );
-                        })}
-                    </Card>
-                </Flex>
-            </Sider>
-        </Layout>
-        <Footer style={footerstyle}>
-            <p style={{ color: "black", fontFamily: "FontAwesome", fontStyle: "italic", fontSize: "24px" }}>To love oneself is the beginning of a lifelong romance.</p>
-        </Footer>
-    </Layout>)
+  const [articles, setArticles] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [query, setQuery] = useState('');
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setError(false);
+    Promise.allSettled([
+      request_client.get('api/list/article', { skipGlobalError: true }),
+      request_client.get('api/tags', { skipGlobalError: true }),
+      request_client.get('api/categories', { skipGlobalError: true }),
+    ]).then(([posts, labels, groups]) => {
+      if (!active) return;
+      setArticles(posts.status === 'fulfilled' ? posts.value.data?.message?.article_list || [] : []);
+      setTags(labels.status === 'fulfilled' ? labels.value.data?.tags || [] : []);
+      setCategories(groups.status === 'fulfilled' ? groups.value.data?.categories || [] : []);
+      setError(posts.status === 'rejected'); setLoading(false);
+    });
+    return () => { active = false; };
+  }, [retry]);
+  const filtered = articles.filter(article => `${article.article_title} ${article.prospectus || ''}`.toLowerCase().includes(query.toLowerCase()));
+  return <>
+    <section className="home-hero"><div><p className="eyebrow">NOTES ON BUILDING & LIVING</p><h1>把探索写成记录，<br />让思考持续生长。</h1><p className="hero-description">关于编程、工程实践，以及生活中的一点灵感。</p></div><div className="hero-note"><span>持续学习 / 持续记录</span><span className="hero-symbol" aria-hidden="true">✳</span><span>TECHNOLOGY & LIFE</span></div></section>
+    <div className="home-grid"><section aria-label="文章列表"><div className="section-heading"><div><p className="eyebrow">THE JOURNAL</p><h2>最新文章 <span className="count">{articles.length}</span></h2></div><Input allowClear aria-label="搜索文章" placeholder="搜索标题或摘要…" value={query} onChange={event => setQuery(event.target.value)} className="article-search" /></div>
+      {loading ? <div className="surface loading-card"><Skeleton active paragraph={{ rows: 5 }} /></div> : error ? <Alert type="error" showIcon title="暂时无法加载文章" description="请检查网络连接，或稍后重试。" action={<Button onClick={() => setRetry(value => value + 1)}>重试</Button>} /> : filtered.length ? <div className="article-list">{filtered.map((article, index) => <article className="surface article-card" key={article.id}><div className="article-meta"><span>ARTICLE / {String(index + 1).padStart(2, '0')}</span>{article.update_time && <time>{String(article.update_time).slice(0, 10)}</time>}</div><h3><Link to={`/article/${article.id}`}>{article.article_title}</Link></h3><p>{article.prospectus || '打开文章，继续阅读完整内容。'}</p><Link className="read-link" to={`/article/${article.id}`}>阅读全文 <span aria-hidden="true">↗</span></Link></article>)}</div> : <div className="surface empty-card"><Empty description={query ? '没有找到匹配的文章' : '还没有发布文章'} /></div>}
+    </section><aside className="sidebar"><section className="surface about-card"><p className="eyebrow">HELLO, WORLD</p><div className="profile-mark">JR</div><h2>你好，我是 John。</h2><p>在这里整理技术笔记，记录解决问题的过程，也分享日常观察。</p><div className="profile-divider" /><span className="muted">保持好奇，慢慢积累。</span></section><section className="surface side-card"><h2>探索标签</h2><div className="tag-cloud">{tags.length ? tags.map(tag => <Tag key={tag.id || tag.tag_name}>{tag.tag_name}</Tag>) : <p className="muted">暂无标签</p>}</div></section><section className="surface side-card"><h2>文章分类</h2>{categories.length ? <ul className="category-list">{categories.map(category => <li key={category.id || category.name}><span>{category.name}</span><span aria-hidden="true">↗</span></li>)}</ul> : <p className="muted">暂无分类</p>}</section></aside></div>
+  </>;
 }
 export default Home;

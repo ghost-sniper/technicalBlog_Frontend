@@ -2,8 +2,9 @@ import axios from 'axios';
 import { message } from 'antd';
 
 const request_client = axios.create({
-    baseURL: 'http://localhost:8080/',
+    baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/',
     timeout: 6000,
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },

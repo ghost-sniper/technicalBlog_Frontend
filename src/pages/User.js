@@ -1,5 +1,5 @@
-import { Card, Col, Row } from 'antd';
-import bg from '../assets/gajeel_and_levy.png'
+import { Alert, Card, Col, Row, Skeleton } from 'antd';
+import Profile from './Profile';
 import { Layout } from "antd";
 import { Form } from 'antd';
 import { Input } from 'antd';
@@ -10,8 +10,8 @@ import React from 'react';
 import { useEffect } from 'react';
 import E2EE from '@chatereum/react-e2ee';
 import request_client from '../utils/common';
-const { Sider, Content } = Layout;
-function User() {
+
+function LoginForm({ onSuccess }) {
     const [isLogin, setIsLogin] = React.useState(true);
     const [publicKey, setPublicKey] = React.useState(null);
     const [loggingIn, setLoggingIn] = React.useState(false);
@@ -36,7 +36,7 @@ function User() {
         }
         try {
             await request_client.post("api/login", { public_key: publicKey, username: username.trim(), password: encryptedPassword.cipher_text, iv: encryptedPassword.iv, aes_key: encryptedPassword.aes_key }, { skipGlobalError: true });
-            messageApi.success('登录成功');
+            onSuccess();
         } catch (error) {
             const data = error.response?.data;
             const errorMessage = typeof data?.message === 'string' && data.message.trim()
@@ -49,7 +49,7 @@ function User() {
     };
 
     const handleRegister = async () => {
-
+        messageApi.info('注册功能尚未开放，请联系管理员');
     }
 
     useEffect(() => {
@@ -66,15 +66,14 @@ function User() {
         return () => { active = false; };
     }, [messageApi]);
     return (
-        <Layout style={{ backgroundImage: `url(${bg})`, height: '100vh', width: '100wh', cover: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+        <Layout className="auth-page">
             {modalContextHolder}
             {messageContextHolder}
-            <Sider width="65%" style={{ background: 'transparent' }}></Sider>
-            <Content style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', padding: '20px', borderRadius: '8px', margin: '20px', alignItems: 'center', justifyContent: 'center', display: 'flex', flexDirection: 'column' }}>
-                <Card title={isLogin ? "登陆" : "注册"} style={{ width: '70%', fontFamily: 'Arial, sans-serif' }} styles={{ header: { textAlign: 'center', fontSize: '24px', fontWeight: 'bold' } }}>
-                    <Form name="userForm" labelCol={{ span: isLogin ? 3 : 5 }}
-                        wrapperCol={{ span: 20 }}
-                        style={{ maxWidth: 600 }}
+            <section className="auth-intro"><p className="eyebrow">WELCOME BACK</p><h1>欢迎回来。<br />继续你的探索。</h1><p>记录新的想法，连接每一次成长。</p><div className="auth-decoration" aria-hidden="true">✳</div></section>
+            <div className="auth-form-wrap">
+                <Card className="auth-card" title={isLogin ? "账号登录" : "创建账号"}>
+                    <p className="muted">{isLogin ? '登录后，继续记录与分享。' : '注册功能尚未开放，请联系管理员。'}</p>
+                    <Form name="userForm" layout="vertical" size="large"
                         initialValues={{ remember: true }}
                         onFinish={isLogin ? handleLogin : handleRegister}
                         autoComplete="off">
@@ -85,7 +84,7 @@ function User() {
                             <Input.Password placeholder="请输入密码" />
                         </Form.Item>
                         {isLogin ? <Form.Item name="remember" valuePropName="checked" label={null}>
-                            <Checkbox>Remember me</Checkbox>
+                            <Checkbox>记住我</Checkbox>
                         </Form.Item> : null}
                         {isLogin ? null : <Form.Item label="确认密码" name="confirmPassword" rules={[{ required: true, message: '请确认密码' }]}>
                             <Input.Password placeholder="请确认密码" />
@@ -94,7 +93,7 @@ function User() {
                             <Input placeholder="请输入邮箱" />
                         </Form.Item>}
                         <Form.Item label={null}>
-                            {isLogin ? <Row width="100%" justify="space-evenly" align="middle">
+                            {isLogin ? <Row className="auth-actions" justify="space-between" align="middle">
                                 <Col>
                                     <Button type="primary" htmlType="submit" loading={loggingIn}>
                                         登陆
@@ -108,7 +107,7 @@ function User() {
                                 <Col>
                                     <p style={{ cursor: 'pointer', color: '#1890ff' }} onClick={() => setIsLogin(false)}>没有账号？注册</p>
                                 </Col>
-                            </Row> : <Row width="100%" justify="space-evenly" align="middle">
+                            </Row> : <Row className="auth-actions" justify="space-between" align="middle">
                                 <Col><Button type="primary" htmlType="submit">
                                     注册
                                 </Button></Col><Col>
@@ -119,7 +118,24 @@ function User() {
                         </Form.Item>
                     </Form>
                 </Card>
-            </Content>
+            </div>
         </Layout>)
+}
+function User() {
+    const [checking, setChecking] = React.useState(true);
+    const [authenticated, setAuthenticated] = React.useState(false);
+    const [error, setError] = React.useState('');
+    useEffect(() => {
+        let active = true;
+        request_client.get('api/user/me', { skipGlobalError: true }).then(response => {
+            if (active) setAuthenticated(Boolean(response.data?.user));
+        }).catch(error => {
+            if (active && error.response?.status !== 401) setError(error.response?.data?.message || '无法恢复登录状态，请检查网络后重试');
+        }).finally(() => { if (active) setChecking(false); });
+        return () => { active = false; };
+    }, []);
+    if (checking) return <div className="surface loading-card"><Skeleton active /></div>;
+    if (authenticated) return <Profile onLoggedOut={() => { setAuthenticated(false); setError(''); }} />;
+    return <>{error && <Alert type="warning" showIcon title={error} className="profile-alert" />}<LoginForm onSuccess={() => { setError(''); setAuthenticated(true); }} /></>;
 }
 export default User;
