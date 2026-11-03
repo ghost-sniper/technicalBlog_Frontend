@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import ArticleEditor from './ArticleEditor';
 import request_client from '../utils/common';
 import { useNavigate } from 'react-router-dom';
-jest.mock('../utils/common', () => ({ get: jest.fn(), put: jest.fn() }));
+jest.mock('../utils/common', () => ({ get: jest.fn(), put: jest.fn(), post: jest.fn() }));
 jest.mock('react-router-dom', () => ({ useParams: () => ({ id: '1' }), useNavigate: jest.fn() }));
 jest.mock('react-markdown', () => ({ children }) => <div>{children}</div>);
 jest.mock('remark-gfm', () => () => {});
@@ -27,6 +27,25 @@ test('previews edited Markdown and saves using the original version', async () =
   expect(await screen.findByText('文章已保存')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: '保存修改' })).toBeDisabled();
 });
+test('inserts an uploaded image at the cursor and saves its Markdown link', async () => {
+  const url = '/api/article-images/42';
+  request_client.post.mockResolvedValue({ data: { url } });
+  const content = `# 原始正文\n\n![图片](${url})\n\n\n末尾`;
+  request_client.put.mockResolvedValue({ data: { ...original, article_content: content } });
+  await act(async () => { render(<ArticleEditor />); });
+  const editor = screen.getByLabelText('Markdown 正文');
+  fireEvent.change(editor, { target: { value: '# 原始正文\n末尾' } });
+  editor.setSelectionRange(6, 6);
+  const file = new File(['png'], 'picture.png', { type: 'image/png' });
+  fireEvent.change(screen.getByLabelText('上传图片'), { target: { files: [file] } });
+  await waitFor(() => expect(editor).toHaveValue(content));
+  expect(request_client.post).toHaveBeenCalledWith('api/article/1/images', file, expect.any(Object));
+  fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
+  await waitFor(() => expect(request_client.put).toHaveBeenCalledWith(
+    'api/article/1/edit', expect.objectContaining({ article_content: content }), expect.any(Object),
+  ));
+});
+
 test('does not expose the editor when permission is denied', async () => {
   request_client.get.mockRejectedValue({ response: { status: 403, data: { message: '你没有这篇文章的编辑权限' } } });
   await act(async () => { render(<ArticleEditor />); });
