@@ -1,0 +1,94 @@
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import ArticleComments from './ArticleComments';
+import request from '../utils/common';
+jest.mock('../utils/common', () => ({ get: jest.fn(), post: jest.fn(), delete: jest.fn() }));
+jest.mock('react-router-dom', () => ({ Link: ({ children, to }) => <a href={to}>{children}</a> }));
+global.MessageChannel = class { constructor() { this.port1 = { onmessage: null }; this.port2 = { postMessage: data => setTimeout(() => this.port1.onmessage?.({ data }), 0) }; } };
+const reply = (id, target = 1) => ({ id, root_id: 1, user_id: 2, username: '回复者', reply_to_user_id: target, reply_to_username: target === 1 ? '一级作者' : '其他用户', content: `内容${id}`, created_at: '2026-11-09T12:00:00' });
+const root = { id: 1, user_id: 1, username: '一级作者', content: '一级内容', created_at: '2026-11-09T11:00:00', replies: [reply(2), reply(3, 3), reply(4)], next_cursor: 4, reply_count: 4 };
+const payload = overrides => ({ comments: [root], count: 1, can_comment: true, can_delete: false, comments_enabled: true, logged_in: true, ...overrides });
+beforeEach(() => {
+  window.matchMedia = jest.fn().mockReturnValue({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} });
+  global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+  request.get.mockResolvedValue({ data: payload() });
+});
+test('shows three replies, addresses other users, expands and collapses', async () => {
+  request.get.mockImplementation(url => Promise.resolve({ data: url.endsWith('/replies') ? { replies: [reply(5)], next_cursor: 5, has_more: false } : payload() }));
+  render(<ArticleComments articleId="1" />);
+  expect(await screen.findByText('内容2')).toBeInTheDocument();
+  expect(screen.getByText('回复 其他用户：')).toBeInTheDocument();
+  expect(screen.queryByText('回复 一级作者：')).not.toBeInTheDocument();
+  expect(screen.queryByText('内容5')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /更多回复/ }));
+  expect(await screen.findByText('内容5')).toBeInTheDocument();
+  expect(request.get).toHaveBeenLastCalledWith('api/article/1/comments/1/replies', expect.objectContaining({ params: { after: 4 } }));
+  fireEvent.click(screen.getByRole('button', { name: '收起' }));
+  expect(screen.queryByText('内容5')).not.toBeInTheDocument();
+});
+test.each([0, 1, 3])('does not offer more for %i replies', async count => {
+  request.get.mockResolvedValue({ data: payload({ comments: [{ ...root, replies: root.replies.slice(0, count), reply_count: count }] }) });
+  render(<ArticleComments articleId="1" />);
+  await screen.findByText('一级内容');
+  expect(screen.queryByRole('button', { name: /更多回复/ })).not.toBeInTheDocument();
+});
+test('rejects whitespace, preserves draft on failure, and sends trimmed plain text', async () => {
+  request.post.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: { id: 9, root_id: null } });
+  render(<ArticleComments articleId="1" />);
+  const input = await screen.findByLabelText('发表评论');
+  fireEvent.change(input, { target: { value: '  ' } });
+  fireEvent.click(screen.getByRole('button', { name: '发表评论' }));
+  expect(await screen.findByText('评论须为 1～2000 字')).toBeInTheDocument();
+  expect(request.post).not.toHaveBeenCalled();
+  fireEvent.change(input, { target: { value: '  <b>纯文本</b>  ' } });
+  fireEvent.click(screen.getByRole('button', { name: '发表评论' }));
+  await screen.findByText('评论服务暂时不可用，请稍后重试');
+  expect(input).toHaveValue('  <b>纯文本</b>  ');
+  fireEvent.click(screen.getByRole('button', { name: '发表评论' }));
+  await waitFor(() => expect(request.post).toHaveBeenCalledTimes(2));
+  expect(request.post).toHaveBeenLastCalledWith('api/article/1/comments', { content: '<b>纯文本</b>', reply_to_comment_id: null }, expect.any(Object));
+  await waitFor(() => expect(screen.getByLabelText('发表评论')).toHaveValue(''));
+});
+test('reveals a submitted reply beyond the initial preview', async () => {
+  request.post.mockResolvedValue({ data: reply(9, 3) });
+  render(<ArticleComments articleId="1" />);
+  await screen.findByText('一级内容');
+  fireEvent.click(screen.getAllByRole('button', { name: '回复' })[2]);
+  fireEvent.change(screen.getByRole('textbox'), { target: { value: '新的回复' } });
+  fireEvent.click(screen.getByRole('button', { name: '发表回复' }));
+  expect(await screen.findByText('内容9', { exact: false })).toBeInTheDocument();
+  expect(request.post).toHaveBeenCalledWith('api/article/1/comments', { content: '新的回复', reply_to_comment_id: 3 }, expect.any(Object));
+});
+test('closed comments remain readable and owners may confirm cascade deletion', async () => {
+  request.get.mockResolvedValue({ data: payload({ can_comment: false, can_delete: true, comments_enabled: false }) });
+  request.delete.mockResolvedValue({});
+  render(<ArticleComments articleId="1" />);
+  await screen.findByText('一级内容');
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '回复' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getAllByRole('button', { name: '删除' })[0]);
+  const dialog = await screen.findByRole('dialog');
+  expect(within(dialog).getByText('此操作将同时删除这条评论下的全部回复。')).toBeInTheDocument();
+  fireEvent.click(within(dialog).getByRole('button', { name: /删\s*除/ }));
+  await waitFor(() => expect(request.delete).toHaveBeenCalledWith('api/article/1/comments/1', expect.any(Object)));
+});
+test('guests read comments but cannot reply or delete', async () => {
+  request.get.mockResolvedValue({ data: payload({ can_comment: false, logged_in: false }) });
+  render(<ArticleComments articleId="1" />);
+  await screen.findByText('一级内容');
+  expect(screen.getByRole('link', { name: '登录' })).toBeInTheDocument();
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '删除' })).not.toBeInTheDocument();
+});
+test('changing articles discards draft and ignores late responses', async () => {
+  let resolveOld;
+  request.get.mockImplementation(url => url.includes('/2/') ? new Promise(resolve => { resolveOld = resolve; }) : Promise.resolve({ data: payload() }));
+  const view = render(<ArticleComments key="1" articleId="1" />);
+  fireEvent.change(await screen.findByLabelText('发表评论'), { target: { value: '旧草稿' } });
+  view.rerender(<ArticleComments key="2" articleId="2" />);
+  expect(screen.queryByDisplayValue('旧草稿')).not.toBeInTheDocument();
+  view.rerender(<ArticleComments key="3" articleId="3" />);
+  await screen.findByLabelText('发表评论');
+  await act(async () => resolveOld({ data: payload({ comments: [{ ...root, content: '过期响应' }] }) }));
+  expect(screen.queryByText('过期响应')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('发表评论')).toHaveValue('');
+});

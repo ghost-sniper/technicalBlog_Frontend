@@ -1,3 +1,4 @@
+import TagManagement from './TagManagement';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import User from './User';
 import E2EE from '@chatereum/react-e2ee';
@@ -6,7 +7,7 @@ import request_client from '../utils/common';
 jest.mock('react-router-dom', () => ({ Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a> }));
 
 jest.mock('@chatereum/react-e2ee', () => ({ encryptPlaintext: jest.fn() }));
-jest.mock('../utils/common', () => ({ get: jest.fn(), post: jest.fn() }));
+jest.mock('../utils/common', () => ({ get: jest.fn(), post: jest.fn(), put: jest.fn() }));
 
 global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
 
@@ -119,11 +120,58 @@ test('returns to the login form after logout', async () => {
 test('shows admin tag management and protects tags associated with articles', async () => {
     request_client.get.mockImplementation(async url => ({ data: url === 'api/admin/tags' ? { tags: [{ id: 1, tag_name: 'docker', article_count: 3 }, { id: 2, tag_name: 'Java', article_count: 0 }] } : { ...profileData, can_manage_tags: true } }));
     request_client.post.mockResolvedValue({ data: { message: '标签已保存' } });
-    await act(async () => { render(<User />); });
-    expect(await screen.findByRole('heading', { name: '标签管理' })).toBeInTheDocument();
+    await act(async () => { render(<TagManagement />); });
+    expect(await screen.findByRole('heading', { name: '全部标签' })).toBeInTheDocument();
     const row = await screen.findByRole('row', { name: /docker/ });
     expect(within(row).getByRole('button', { name: /删\s*除/ })).toBeDisabled();
     fireEvent.change(screen.getByRole('textbox', { name: '管理标签名称' }), { target: { value: 'Python' } });
     fireEvent.click(screen.getByRole('button', { name: '新增标签' }));
     await waitFor(() => expect(request_client.post).toHaveBeenCalledWith('api/admin/tags', { tag_name: 'Python' }, { skipGlobalError: true }));
+});
+
+
+test('profile links administrators to the separate tag page', async () => {
+  request_client.get.mockResolvedValue({ data: { ...profileData, can_manage_tags: true } });
+  await act(async () => { render(<User />); });
+  expect(await screen.findByRole('link', { name: /标签管理/ })).toHaveAttribute('href', '/admin/tags');
+  expect(screen.queryByRole('textbox', { name: '管理标签名称' })).not.toBeInTheDocument();
+  expect(request_client.get.mock.calls.every(([url]) => url !== 'api/admin/tags')).toBe(true);
+});
+
+test('non-admin direct visits do not expose tag management controls', async () => {
+  request_client.get.mockResolvedValue({ data: profileData });
+  await act(async () => { render(<TagManagement />); });
+  expect(await screen.findByText('此页面仅限管理员访问')).toBeInTheDocument();
+  expect(screen.queryByRole('textbox', { name: '管理标签名称' })).not.toBeInTheDocument();
+  expect(request_client.get.mock.calls.every(([url]) => url !== 'api/admin/tags')).toBe(true);
+});
+
+
+test('edits own profile and immediately updates the displayed information', async () => {
+  request_client.get.mockResolvedValue({ data: profileData });
+  request_client.put.mockResolvedValue({ data: { user: { ...profileData.user, username: '新的名字', introduction: '新的简介' } } });
+  await act(async () => { render(<User />); });
+  fireEvent.click(await screen.findByRole('button', { name: '编辑资料' }));
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.change(within(dialog).getByLabelText('用户名'), { target: { value: '新的名字' } });
+  fireEvent.change(within(dialog).getByLabelText('个人简介'), { target: { value: '新的简介' } });
+  fireEvent.click(within(dialog).getByRole('button', { name: '保存资料' }));
+  await screen.findByText('基本信息已保存');
+  expect(screen.getByText('新的简介')).toBeInTheDocument();
+  expect(request_client.put).toHaveBeenCalledWith('api/user/me', { username: '新的名字', email: 'author@example.com', phone_number: '', introduction: '新的简介' }, { skipGlobalError: true });
+});
+
+test('failed profile save preserves input and cancel leaves displayed profile unchanged', async () => {
+  request_client.get.mockResolvedValue({ data: profileData });
+  request_client.put.mockRejectedValue({ response: { status: 409, data: { message: '用户名已被使用' } } });
+  await act(async () => { render(<User />); });
+  fireEvent.click(await screen.findByRole('button', { name: '编辑资料' }));
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.change(within(dialog).getByLabelText('用户名'), { target: { value: '重复名字' } });
+  fireEvent.click(within(dialog).getByRole('button', { name: '保存资料' }));
+  await within(dialog).findByText('用户名已被使用');
+  expect(within(dialog).getByLabelText('用户名')).toHaveValue('重复名字');
+  fireEvent.click(within(dialog).getByRole('button', { name: /取\s*消/ }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(screen.getByText('作者甲')).toBeInTheDocument();
 });

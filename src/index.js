@@ -7,6 +7,7 @@ import User from './pages/User';
 import Home from './pages/Home';
 import Article from './pages/Article';
 import ArticleEditor from './pages/ArticleEditor';
+import TagManagement from './pages/TagManagement';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './theme/ThemeProvider';
 
@@ -15,6 +16,7 @@ let router = createBrowserRouter([
     path: "/",
     Component: App,
     children: [
+      { path: "admin/tags", Component: TagManagement },
       { path: "article/:id/edit", Component: ArticleEditor },
       { index: true, element: <Navigate to="/home" replace /> },
       {

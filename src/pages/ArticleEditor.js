@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Input, Modal, Select, Skeleton, message } from 'antd';
+import { Alert, Button, Input, Modal, Select, Skeleton, Switch, message } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import request_client from '../utils/common';
 import { articleImageUrl } from '../utils/articleImages';
+
+const normalizeVisibility = value => ['public', 'authenticated', 'private'].includes(value) ? value : 'private';
 
 export default function ArticleEditor() {
   const { id } = useParams();
@@ -12,7 +14,7 @@ export default function ArticleEditor() {
   const [tagOptions, setTagOptions] = useState([]);
   const [tagQuery, setTagQuery] = useState('');
   const [original, setOriginal] = useState(null);
-  const [draft, setDraft] = useState({ article_title: '', article_content: '', prospectus: '', tags: [] });
+  const [draft, setDraft] = useState({ article_title: '', article_content: '', prospectus: '', tags: [], view_type: 'public', comment_status: 1 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -21,7 +23,7 @@ export default function ArticleEditor() {
   const [retry, setRetry] = useState(0);
   const [messageApi, messageHolder] = message.useMessage();
   const [modal, modalHolder] = Modal.useModal();
-  const dirty = original && (draft.article_title !== original.article_title || draft.article_content !== original.article_content || draft.prospectus !== (original.prospectus || '') || JSON.stringify(draft.tags) !== JSON.stringify((original.tags || []).map(tag => tag.tag_name)));
+  const dirty = original && (draft.view_type !== normalizeVisibility(original.view_type) || draft.comment_status !== (original.comment_status === 1 ? 1 : 0) || draft.article_title !== original.article_title || draft.article_content !== original.article_content || draft.prospectus !== (original.prospectus || '') || JSON.stringify(draft.tags) !== JSON.stringify((original.tags || []).map(tag => tag.tag_name)));
   useEffect(() => {
     let active = true;
     const timer = setTimeout(() => {
@@ -37,7 +39,7 @@ export default function ArticleEditor() {
     request_client.get(`api/article/${id}/edit`, { skipGlobalError: true }).then(response => {
       if (!active) return;
       setOriginal(response.data);
-      setDraft({ article_title: response.data.article_title, article_content: response.data.article_content, prospectus: response.data.prospectus || '', tags: (response.data.tags || []).map(tag => tag.tag_name) });
+      setDraft({ article_title: response.data.article_title, article_content: response.data.article_content, prospectus: response.data.prospectus || '', tags: (response.data.tags || []).map(tag => tag.tag_name), view_type: normalizeVisibility(response.data.view_type), comment_status: response.data.comment_status === 1 ? 1 : 0 });
     }).catch(error => { if (active) setError(error.response?.data?.message || '无法加载文章，请稍后重试'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -86,7 +88,7 @@ export default function ArticleEditor() {
     try {
       const response = await request_client.put(`api/article/${id}/edit`, { ...draft, expected_update_time: original.update_time }, { skipGlobalError: true });
       setOriginal(response.data);
-      setDraft({ article_title: response.data.article_title, article_content: response.data.article_content, prospectus: response.data.prospectus || '', tags: (response.data.tags || []).map(tag => tag.tag_name) });
+      setDraft({ article_title: response.data.article_title, article_content: response.data.article_content, prospectus: response.data.prospectus || '', tags: (response.data.tags || []).map(tag => tag.tag_name), view_type: normalizeVisibility(response.data.view_type), comment_status: response.data.comment_status === 1 ? 1 : 0 });
       const actualTags = (response.data.tags || []).map(tag => tag.tag_name);
       const replaced = draft.tags.filter(name => !actualTags.includes(name));
       messageApi.success(replaced.length ? `文章已保存，相似标签已合并为：${actualTags.join('、')}` : '文章已保存');
@@ -99,6 +101,6 @@ export default function ArticleEditor() {
   };
   return <section className="editor-page">{messageHolder}{modalHolder}<div className="section-heading"><div><p className="eyebrow">MARKDOWN EDITOR</p><h1>编辑文章</h1></div><div className="editor-actions"><Button onClick={cancel} disabled={saving || uploading}>返回文章</Button><Button type="primary" loading={saving} disabled={!original || !dirty || uploading} onClick={save}>保存修改</Button></div></div>
     {error && <Alert className="profile-alert" type="error" showIcon title={error} action={!original && <Button onClick={() => setRetry(value => value + 1)}>重试</Button>} />}
-    {loading ? <div className="surface loading-card"><Skeleton active /></div> : original && <><div className="surface editor-fields"><label htmlFor="article-title">文章标题</label><Input id="article-title" maxLength={255} showCount value={draft.article_title} onChange={event => change('article_title', event.target.value)} disabled={saving} /><label htmlFor="article-summary">文章摘要</label><Input.TextArea id="article-summary" maxLength={255} showCount autoSize={{ minRows: 2, maxRows: 4 }} value={draft.prospectus} onChange={event => change('prospectus', event.target.value)} disabled={saving} /><label htmlFor="article-tags">文章标签</label><Select id="article-tags" aria-label="文章标签" mode="tags" value={draft.tags} options={tagOptions} filterOption={false} onSearch={setTagQuery} onChange={tags => { if (tags.length <= 10 && tags.every(name => name.trim() && name.length <= 40)) change('tags', tags); else messageApi.warning('最多选择 10 个标签，每个标签最多 40 字'); }} disabled={saving} placeholder="选择已有标签，或输入新标签后按回车" /><span className="muted">输入时显示相近标签；保存时忽略大小写和空格，相似度达到 80% 时复用已有标签。</span></div><div className="editor-grid"><div className="surface editor-pane"><label htmlFor="markdown-content">Markdown 正文</label><label>上传图片 <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" disabled={saving || uploading} onChange={uploadImage} /></label><span className="muted">{uploading ? '正在上传图片…' : '支持 PNG、JPEG、GIF、WebP，单张最多 5 MB'}</span><Input.TextArea ref={markdownRef} id="markdown-content" value={draft.article_content} onChange={event => change('article_content', event.target.value)} disabled={saving || uploading} spellCheck={false} /><span className="muted">{dirty ? '有未保存的修改' : '所有修改已保存'} · 支持标题、列表、代码块和表格</span></div><section className="surface editor-pane" aria-label="Markdown 实时预览"><h2>实时预览</h2><div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={articleImageUrl}>{draft.article_content}</ReactMarkdown></div></section></div></>}
+    {loading ? <div className="surface loading-card"><Skeleton active /></div> : original && <><div className="surface editor-fields"><label htmlFor="article-title">文章标题</label><Input id="article-title" maxLength={255} showCount value={draft.article_title} onChange={event => change('article_title', event.target.value)} disabled={saving} /><label htmlFor="article-summary">文章摘要</label><Input.TextArea id="article-summary" maxLength={255} showCount autoSize={{ minRows: 2, maxRows: 4 }} value={draft.prospectus} onChange={event => change('prospectus', event.target.value)} disabled={saving} /><label htmlFor="article-visibility">访问范围</label><Select id="article-visibility" aria-label="访问范围" value={draft.view_type} onChange={value => change('view_type', value)} disabled={saving} options={[{ value: 'public', label: '公开' }, { value: 'authenticated', label: '登录可见' }, { value: 'private', label: '仅自己' }]} /><div><label htmlFor="article-comments-enabled">允许评论 </label><Switch id="article-comments-enabled" checked={draft.comment_status === 1} onChange={checked => change('comment_status', checked ? 1 : 0)} disabled={saving} /></div><span className="muted">关闭评论后保留已有讨论；管理员始终可以阅读文章并管理评论。</span><label htmlFor="article-tags">文章标签</label><Select id="article-tags" aria-label="文章标签" mode="tags" value={draft.tags} options={tagOptions} filterOption={false} onSearch={setTagQuery} onChange={tags => { if (tags.length <= 10 && tags.every(name => name.trim() && name.length <= 40)) change('tags', tags); else messageApi.warning('最多选择 10 个标签，每个标签最多 40 字'); }} disabled={saving} placeholder="选择已有标签，或输入新标签后按回车" /><span className="muted">输入时显示相近标签；保存时忽略大小写和空格，相似度达到 80% 时复用已有标签。</span></div><div className="editor-grid"><div className="surface editor-pane"><label htmlFor="markdown-content">Markdown 正文</label><label>上传图片 <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" disabled={saving || uploading} onChange={uploadImage} /></label><span className="muted">{uploading ? '正在上传图片…' : '支持 PNG、JPEG、GIF、WebP，单张最多 5 MB'}</span><Input.TextArea ref={markdownRef} id="markdown-content" value={draft.article_content} onChange={event => change('article_content', event.target.value)} disabled={saving || uploading} spellCheck={false} /><span className="muted">{dirty ? '有未保存的修改' : '所有修改已保存'} · 支持标题、列表、代码块和表格</span></div><section className="surface editor-pane" aria-label="Markdown 实时预览"><h2>实时预览</h2><div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={articleImageUrl}>{draft.article_content}</ReactMarkdown></div></section></div></>}
   </section>;
 }

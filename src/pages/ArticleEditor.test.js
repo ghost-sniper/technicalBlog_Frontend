@@ -8,7 +8,7 @@ jest.mock('react-markdown', () => ({ children }) => <div>{children}</div>);
 jest.mock('remark-gfm', () => () => {});
 global.MessageChannel = class { constructor() { this.port1 = { onmessage: null }; this.port2 = { postMessage: data => setTimeout(() => this.port1.onmessage?.({ data }), 0) }; } };
 const nativeStyle = window.getComputedStyle.bind(window);
-const original = { id: 1, article_title: '原始标题', article_content: '# 原始正文', prospectus: '摘要', update_time: '2026-01-01T00:00:00' };
+const original = { id: 1, view_type: 'public', comment_status: 1, article_title: '原始标题', article_content: '# 原始正文', prospectus: '摘要', update_time: '2026-01-01T00:00:00' };
 beforeEach(() => {
   useNavigate.mockReturnValue(jest.fn());
   window.matchMedia = jest.fn().mockReturnValue({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} });
@@ -23,7 +23,7 @@ test('previews edited Markdown and saves using the original version', async () =
   fireEvent.change(screen.getByLabelText('Markdown 正文'), { target: { value: '# 新正文' } });
   expect(within(screen.getByRole('region', { name: 'Markdown 实时预览' })).getByText('# 新正文')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
-  await waitFor(() => expect(request_client.put).toHaveBeenCalledWith('api/article/1/edit', { article_title: '原始标题', article_content: '# 新正文', prospectus: '摘要', tags: [], expected_update_time: original.update_time }, { skipGlobalError: true }));
+  await waitFor(() => expect(request_client.put).toHaveBeenCalledWith('api/article/1/edit', { article_title: '原始标题', article_content: '# 新正文', prospectus: '摘要', tags: [], view_type: 'public', comment_status: 1, expected_update_time: original.update_time }, { skipGlobalError: true }));
   expect(await screen.findByText('文章已保存')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: '保存修改' })).toBeDisabled();
 });
@@ -66,4 +66,12 @@ test('asks before discarding unsaved edits', async () => {
   fireEvent.change(screen.getByLabelText('文章标题'), { target: { value: '尚未保存' } });
   fireEvent.click(screen.getByRole('button', { name: '返回文章' }));
   expect(within(await screen.findByRole('dialog')).getByRole('button', { name: '继续编辑' })).toBeInTheDocument();
+});
+
+test('saves comment switch with version and preserves access choice', async () => {
+  request_client.put.mockResolvedValue({ data: { ...original, comment_status: 0 } });
+  await act(async () => { render(<ArticleEditor />); });
+  fireEvent.click(screen.getByRole('switch', { name: '允许评论' }));
+  fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
+  await waitFor(() => expect(request_client.put).toHaveBeenCalledWith('api/article/1/edit', expect.objectContaining({ view_type: 'public', comment_status: 0, expected_update_time: original.update_time }), expect.any(Object)));
 });
